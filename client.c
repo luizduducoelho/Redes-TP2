@@ -2,6 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tp_socket.c"
+
+void error(const char *msg){
+	perror(msg);
+	exit(1);
+}
 
 int main(int argc, char **argv){
 
@@ -38,6 +44,32 @@ int main(int argc, char **argv){
 	printf("Porta do servidor: %d\n", porta_do_servidor);
 	printf("Nome do arquivo: %s\n", nome_do_arquivo);
 	printf("Tamanho do buffer: %d\n", tam_buffer);
+
+	// Inicializando TP Socket
+	tp_init();
+
+	// Cria um socket udp
+	int udp_socket;
+	udp_socket = tp_socket(2000);
+	if (udp_socket == -1){
+		error("Falha ao criar o socket");
+	}
+	else if (udp_socket == -2){
+		error("Falha ao estabelecer endereco (tp_build_addr)");
+	}
+	else if (udp_socket == -3){
+		error("Falha de bind");
+	}
+
+	//Estabelecendo endereco de envio
+	so_addr server;
+	if (tp_build_addr(&server,nome_do_servidor,porta_do_servidor)< 0){
+		error("Falha ao estabelecer endereco do servidor");
+	}
+
+	// Envia um buffer 
+	int count;
+	count = tp_sendto(udp_socket, nome_do_arquivo, filename_len, &server);
 
 	return 0;
 }
