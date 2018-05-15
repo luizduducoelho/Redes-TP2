@@ -45,6 +45,11 @@ int main(int argc, char * argv[]){
 	// Exibe mensagem
 	printf("Data received: %s\n", buffer);
 
+	// Envia resposta 
+	int count;
+	char resp[] = "Obrigado!";
+	count = tp_sendto(udp_socket, resp, sizeof(resp), &cliente);
+
 
 	return 0;
 }

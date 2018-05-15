@@ -71,5 +71,15 @@ int main(int argc, char **argv){
 	int count;
 	count = tp_sendto(udp_socket, nome_do_arquivo, filename_len, &server);
 
+	// Buffer
+	char buffer[tam_buffer];
+	// Recebe a resposta
+	tp_recvfrom(udp_socket, buffer, tam_buffer, &server);
+
+	// Exibe mensagem
+	printf("Data received: %s\n", buffer);
+
+
+
 	return 0;
 }
