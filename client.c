@@ -1,3 +1,4 @@
+
 // Client 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,6 @@ void error(const char *msg){
 }
 
 int main(int argc, char **argv){
-
 	// PROCESSANDO ARGUMENTOS DA LINHA DE COMANDO
 	if(argc < 5){	
 		fprintf(stderr , "Parametros faltando \n");
@@ -46,41 +46,47 @@ int main(int argc, char **argv){
 	printf("Porta do servidor: %d\n", porta_do_servidor);
 	printf("Nome do arquivo: %s\n", nome_do_arquivo);
 	printf("Tamanho do buffer: %d\n", tam_buffer);
-
+	printf("antes de tp init\n");
 	// Inicializando TP Socket
 	tp_init();
+	printf("depois de tp init\n");
 
 	// Cria um socket udp
 	int udp_socket;
-	udp_socket = tp_socket(2000);
+	unsigned short porta_cliente = 9000;
+	printf("antes de udp socket\n");
+	udp_socket = tp_socket(porta_cliente);
+	printf("depois de udp socket\n");
 	if (udp_socket == -1){
-		error("Falha ao criar o socket");
+		error("Falha ao criar o socket\n");
 	}
 	else if (udp_socket == -2){
-		error("Falha ao estabelecer endereco (tp_build_addr)");
+		error("Falha ao estabelecer endereco (tp_build_addr)\n");
 	}
 	else if (udp_socket == -3){
-		error("Falha de bind");
+		error("Falha de bind\n");
 	}
-	printf("antes de so addr");
+	printf("antes de so addr\n");
 	//Estabelecendo endereco de envio
 	so_addr server;
-	printf("depois de so addr");
+
+	printf("depois de so addr\n");
 	if (tp_build_addr(&server,nome_do_servidor,porta_do_servidor)< 0){
-		error("Falha ao estabelecer endereco do servidor");
+		error("Falha ao estabelecer endereco do servidor\n");
 	}
-	printf("yesss1");
+	printf("yesss1\n");
 	// Seta nome do arquivo
 	int count;
-	char nome_do_arquivo_pkg[filename_len+1];
-	printf("yess");
-	strcpy(nome_do_arquivo_pkg, strcat("0", nome_do_arquivo));
+	char *nome_do_arquivo_pkg = calloc(filename_len+1, sizeof (*nome_do_arquivo_pkg));
+	printf("yess\n");
+	nome_do_arquivo_pkg[0] = '0';
+	strcat(nome_do_arquivo_pkg, nome_do_arquivo);
 	printf("%s\n", nome_do_arquivo_pkg);
 
 	// Buffer
 	char buffer[tam_buffer];
 	struct timeval tv;
-	tv.tv_sec = 5;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt\n");}
@@ -91,15 +97,15 @@ int main(int argc, char **argv){
 		tp_sendto(udp_socket, nome_do_arquivo_pkg, filename_len, &server);
 
 		count = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
-		printf("Data received: %s\n", buffer);
-	}while ((count == -1) && buffer[0] != '0');
+		printf("Data received: %s\n", buffer); 
+	}while ((count == -1) && (strcmp(buffer[0], '0') != 0));
 
-	printf("OK, server recebeu o meu nome!!!!!!!!");
-	char ack[] = "0";
-	tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 0
+	printf("OK, server recebeu o meu nome!!!!!!!!\n");
+	char ack[] = "1";
+	tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 1
 	free(nome_do_arquivo);
 	free(nome_do_servidor);
-
+	free(nome_do_arquivo_pkg);
 
 
 
