@@ -67,6 +67,14 @@ int main(int argc, char **argv){
 		error("Falha ao estabelecer endereco do servidor");
 	}
 
+	//set timer for recv_socket
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 100000;
+	if (setsockopt(rcv_sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+	    perror("Error");
+	}
+
 	// Envia um buffer 
 	int count;
 	count = tp_sendto(udp_socket, nome_do_arquivo, filename_len, &server);
