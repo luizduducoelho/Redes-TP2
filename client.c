@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include "tp_socket.c"
 
 void error(const char *msg){
@@ -12,11 +13,12 @@ void error(const char *msg){
 int main(int argc, char **argv){
 
 	// PROCESSANDO ARGUMENTOS DA LINHA DE COMANDO
-		if(argc < 5){	
+	if(argc < 5){	
 		fprintf(stderr , "Parametros faltando \n");
 		printf("Formato: [host_do_servidor], [porta_do_servidor], [nome_do_arquivo], [tamanho_buffer] \n");
 		exit(1);
 	}
+
 	size_t host_len = strlen(argv[1]) + 1;  
 	//converte o numero de porta de string para inteiro
 	int porta_do_servidor;
@@ -60,32 +62,45 @@ int main(int argc, char **argv){
 	else if (udp_socket == -3){
 		error("Falha de bind");
 	}
-
+	printf("antes de so addr");
 	//Estabelecendo endereco de envio
 	so_addr server;
+	printf("depois de so addr");
 	if (tp_build_addr(&server,nome_do_servidor,porta_do_servidor)< 0){
 		error("Falha ao estabelecer endereco do servidor");
 	}
-
-	//set timer for recv_socket
-	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 100000;
-	if (setsockopt(rcv_sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-	    perror("Error");
-	}
-
-	// Envia um buffer 
+	printf("yesss1");
+	// Seta nome do arquivo
 	int count;
-	count = tp_sendto(udp_socket, nome_do_arquivo, filename_len, &server);
+	char nome_do_arquivo_pkg[filename_len+1];
+	printf("yess");
+	strcpy(nome_do_arquivo_pkg, strcat("0", nome_do_arquivo));
+	printf("%s\n", nome_do_arquivo_pkg);
 
 	// Buffer
 	char buffer[tam_buffer];
-	// Recebe a resposta
-	tp_recvfrom(udp_socket, buffer, tam_buffer, &server);
+	struct timeval tv;
+	tv.tv_sec = 5;
+	tv.tv_usec = 0;
+	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
+		perror("Error setsockopt\n");}
 
-	// Exibe mensagem
-	printf("Data received: %s\n", buffer);
+	do {
+		printf("Manda nome_do_arquivo\n");
+		printf("Enviado: %s\n", nome_do_arquivo_pkg);
+		tp_sendto(udp_socket, nome_do_arquivo_pkg, filename_len, &server);
+
+		count = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
+		printf("Data received: %s\n", buffer);
+	}while ((count == -1) && buffer[0] != '0');
+
+	printf("OK, server recebeu o meu nome!!!!!!!!");
+	char ack[] = "0";
+	tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 0
+	free(nome_do_arquivo);
+	free(nome_do_servidor);
+
+
 
 
 
