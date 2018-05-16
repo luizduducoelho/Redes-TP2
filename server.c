@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include "tp_socket.c"
 
 int main(int argc, char * argv[]){
@@ -38,17 +39,30 @@ int main(int argc, char * argv[]){
 
 	// From
 	so_addr cliente;
-
+	char nome_do_arquivo[256];
 	// Rebebe um buffer
-	tp_recvfrom(udp_socket, buffer, tam_buffer, &cliente);
+	tp_recvfrom(udp_socket, nome_do_arquivo, sizeof(nome_do_arquivo), &cliente);
+	char ack[] = "1";
+	struct timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
+		perror("Error setsockopt");
+	}
+	int count;
+	do {
+		tp_sendto(udp_socket, ack, sizeof(ack), &cliente); // Manda ACK = 0
+		printf("Enviado ACK = 0: %s\n", ack);
+
+		printf("Aguardando ACK = 1");
+		count = tp_recvfrom(udp_socket, buffer, sizeof(buffer), &cliente);  // Esperando ACK = 1
+		printf("Recebido count: %s\n", buffer);
+
+	}while ((count == -1) && (buffer[0] != '1'));
 
 	// Exibe mensagem
-	printf("Data received: %s\n", buffer);
-
-	// Envia resposta 
-	int count;
-	char resp[] = "Obrigado!";
-	count = tp_sendto(udp_socket, resp, sizeof(resp), &cliente);
+	printf("End of interaction \n");
+	printf("Final Data received: %s\n", buffer);
 
 
 	return 0;
