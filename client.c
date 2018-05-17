@@ -41,22 +41,18 @@ int main(int argc, char **argv){
 	//salva o nome do arquivo recebido pela linha de comando na variável nome_do_arquivo
 	strncpy (nome_do_arquivo, argv[3], filename_len-1);
 
-
 	printf("Nome do servidor: %s\n", nome_do_servidor);
 	printf("Porta do servidor: %d\n", porta_do_servidor);
 	printf("Nome do arquivo: %s\n", nome_do_arquivo);
 	printf("Tamanho do buffer: %d\n", tam_buffer);
-	printf("antes de tp init\n");
+
 	// Inicializando TP Socket
 	tp_init();
-	printf("depois de tp init\n");
 
 	// Cria um socket udp
 	int udp_socket;
-	unsigned short porta_cliente = 9000;
-	printf("antes de udp socket\n");
+	unsigned short porta_cliente = 9000;  // numro arbitrario para porta do cliente
 	udp_socket = tp_socket(porta_cliente);
-	printf("depois de udp socket\n");
 	if (udp_socket == -1){
 		error("Falha ao criar o socket\n");
 	}
@@ -67,48 +63,43 @@ int main(int argc, char **argv){
 		error("Falha de bind\n");
 	}
 	printf("antes de so addr\n");
+
 	//Estabelecendo endereco de envio
 	so_addr server;
-
-	printf("depois de so addr\n");
 	if (tp_build_addr(&server,nome_do_servidor,porta_do_servidor)< 0){
 		error("Falha ao estabelecer endereco do servidor\n");
 	}
-	printf("yesss1\n");
-	// Seta nome do arquivo
-	int count;
-	char *nome_do_arquivo_pkg = calloc(filename_len+1, sizeof (*nome_do_arquivo_pkg));
-	printf("yess\n");
-	nome_do_arquivo_pkg[0] = '0';
-	strcat(nome_do_arquivo_pkg, nome_do_arquivo);
-	printf("%s\n", nome_do_arquivo_pkg);
 
-	// Buffer
-	char buffer[tam_buffer];
+	// Seta nome do arquivo
+	char *nome_do_arquivo_pkg = calloc(filename_len+1, sizeof (*nome_do_arquivo_pkg));
+	//nome_do_arquivo_pkg[0] = '0';
+	strcpy(nome_do_arquivo_pkg, "0");
+	strcat(nome_do_arquivo_pkg, nome_do_arquivo);
+	printf("Nome de nome_do_arquivo_pkg: %s\n", nome_do_arquivo_pkg);
+
+	// Realiza temporizacao para 1s
 	struct timeval tv;
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt\n");}
 
+	// Envia nome do arquivo
+	int count;
+	char buffer[tam_buffer];
 	do {
-		printf("Manda nome_do_arquivo\n");
-		printf("Enviado: %s\n", nome_do_arquivo_pkg);
+		printf("Envia nome_do_arquivo ......\n");
 		tp_sendto(udp_socket, nome_do_arquivo_pkg, filename_len, &server);
-
 		count = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
-		printf("Data received: %s\n", buffer); 
-	}while ((count == -1) && (strcmp(buffer[0], '0') != 0));
+	}while ((count == -1) || buffer[0] != '0');
+	printf("OK, server recebeu o nome do arquivo !\n");
 
-	printf("OK, server recebeu o meu nome!!!!!!!!\n");
 	char ack[] = "1";
 	tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 1
+
 	free(nome_do_arquivo);
 	free(nome_do_servidor);
 	free(nome_do_arquivo_pkg);
-
-
-
 
 	return 0;
 }
