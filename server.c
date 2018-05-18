@@ -70,10 +70,11 @@ int main(int argc, char * argv[]){
 		exit(1);
 	}
 	int total_lido;
+	char ack_recebido[1];
 	char aux[1]; //para manipular a concatenacao dos dados com o cabeçalho
 	printf("ack%s",ack);
 	//rotina stop-and-wait
-	/*do{
+	do{
 		total_lido = fread(buffer, tam_buffer-1, 1, arq);
 		strcpy(aux, ack); //aux = ack
 		strcat(aux, buffer); //aux = ack+buffer
@@ -83,10 +84,9 @@ int main(int argc, char * argv[]){
 		if(ack[0]=='0'){
 			do {
 				tp_sendto(udp_socket, buffer, sizeof(buffer), &cliente); // Manda pacote de dados 0
-				memset(buffer, 0, tam_buffer);
 				printf("Aguardando ACK = %s ....... \n",ack);
-				count = tp_recvfrom(udp_socket, buffer, sizeof(buffer), &cliente);  // Espera ACK = 0
-			}while ((count == -1) || (buffer[0] != '0'));
+				count = tp_recvfrom(udp_socket, ack_recebido, sizeof(ack_recebido), &cliente);  // Espera ACK = 0
+			}while ((count == -1) || (ack_recebido[0] != '0'));
 			memset(ack, 0, 1);
 			strcpy(ack,"1");
 			count = -1;
@@ -94,9 +94,8 @@ int main(int argc, char * argv[]){
 		else if(ack[0]=='1'){
 			do {
 				tp_sendto(udp_socket, buffer, sizeof(buffer), &cliente); // Manda pacote de dados 1
-				memset(buffer, 0, tam_buffer);
 				printf("Aguardando ACK = %s ....... \n",ack);
-				count = tp_recvfrom(udp_socket, buffer, sizeof(buffer), &cliente);  // Espera ACK = 1
+				count = tp_recvfrom(udp_socket, ack_recebido, sizeof(ack_recebido), &cliente);  // Espera ACK = 1
 			}while ((count == -1) || (buffer[0] != '1'));
 			memset(ack, 0, 1);
 			strcpy(ack,"0");
@@ -104,7 +103,8 @@ int main(int argc, char * argv[]){
 			}
 		memset(buffer, 0, tam_buffer );
 		memset(aux, 0, tam_buffer );
-	}while(total_lido != 0);*/
+		memset(ack_recebido, 0, 1);
+	}while(total_lido != 0);
 	return 0;
 	fclose(arq);
 }
