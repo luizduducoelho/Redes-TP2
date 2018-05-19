@@ -5,6 +5,12 @@
 #include <sys/time.h>
 #include "tp_socket.c"
 
+void extract_packet(char* packet, char* ack, char* dados ){
+	strncpy(ack, packet, 1);  // Be aware that strncpy does NOT null terminate
+	ack[1] = '\0';
+	memmove(dados, packet+1, strlen(packet));
+}
+
 int main(int argc, char * argv[]){
 	// PROCESSANDO ARGUMENTOS DA LINHA DE COMANDO
 	if(argc < 3){	
@@ -39,6 +45,10 @@ int main(int argc, char * argv[]){
 	char nome_do_arquivo[256];
 	// Rebebe um buffer
 	tp_recvfrom(udp_socket, nome_do_arquivo, sizeof(nome_do_arquivo), &cliente);
+	char recv_ack[2];
+	char arquivo_correto[15];
+	extract_packet(nome_do_arquivo, recv_ack, arquivo_correto);
+	printf("EXTRACTED: arquivo_correto = %s, recv_ack = %s \n", arquivo_correto, recv_ack);
 	struct timeval tv;
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
