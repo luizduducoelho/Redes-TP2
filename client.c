@@ -11,6 +11,34 @@ void error(const char *msg){
 	exit(1);
 }
 
+void create_packet(char* akc, char* dados, char* packet){
+	strcpy(packet, akc);
+	strcat(packet, dados);
+}
+
+void extract_packet(char* packet, char* ack, char* dados ){
+	strncpy(ack, packet, 1);  // Be aware that strncpy does NOT null terminate
+	ack[1] = '\0';
+	memmove(dados, packet+1, strlen(packet));
+}
+
+void extract_ack(char* packet, char* ack){
+	strncpy(ack, packet, 1);  // Be aware that strncpy does NOT null terminate
+	ack[1] = '\0';
+}
+
+void toggle_ack(char *ack){
+	if (strcmp(ack, "0") == 0){
+		strcpy(ack, "1");
+	}
+	else if (strcmp(ack, "1") == 0){
+		strcpy(ack, "0");
+	}
+	else{
+		error("Valor de ACK desconhecido");
+	}
+}
+
 int main(int argc, char **argv){
 	// PROCESSANDO ARGUMENTOS DA LINHA DE COMANDO
 	if(argc < 5){	
@@ -33,17 +61,17 @@ int main(int argc, char **argv){
 		return 1;
     	}
 	//salva o nome do servidor (na forma de endereço IP) recbido pela linha de comando na variável nome_do_servidor
-	strncpy (nome_do_servidor, argv[1], host_len-1);
+	strncpy(nome_do_servidor, argv[1], host_len-1);
 	if (!nome_do_arquivo) { 
 		fprintf (stderr, "error: virtual memory exhausted allocating 'nome_do_arquivo'\n");
 		return 1;
     	}
 	//salva o nome do arquivo recebido pela linha de comando na variável nome_do_arquivo
-	strncpy (nome_do_arquivo, argv[3], filename_len-1);
+    strncpy(nome_do_arquivo, argv[3], filename_len);
 
-	printf("Nome do servidor: %s\n", nome_do_servidor);
+	printf("Nome do servidor: %s,\n", nome_do_servidor);
 	printf("Porta do servidor: %d\n", porta_do_servidor);
-	printf("Nome do arquivo: %s\n", nome_do_arquivo);
+	printf("Nome do arquivo: %s, %zu, %zu\n", nome_do_arquivo, sizeof(nome_do_arquivo), strlen(nome_do_arquivo));
 	printf("Tamanho do buffer: %d\n", tam_buffer);
 
 	// Inicializando TP Socket
@@ -62,7 +90,6 @@ int main(int argc, char **argv){
 	else if (udp_socket == -3){
 		error("Falha de bind\n");
 	}
-	printf("antes de so addr\n");
 
 	//Estabelecendo endereco de envio
 	so_addr server;
@@ -72,10 +99,11 @@ int main(int argc, char **argv){
 
 	// Seta nome do arquivo
 	char *nome_do_arquivo_pkg = calloc(filename_len+1, sizeof (*nome_do_arquivo_pkg));
-	//nome_do_arquivo_pkg[0] = '0';
-	strcpy(nome_do_arquivo_pkg, "0");
-	strcat(nome_do_arquivo_pkg, nome_do_arquivo);
-	printf("Nome de nome_do_arquivo_pkg: %s\n", nome_do_arquivo_pkg);
+	//strcpy(nome_do_arquivo_pkg, "0");
+	//strcat(nome_do_arquivo_pkg, nome_do_arquivo);
+	char ack[] = "0";
+	create_packet(ack, nome_do_arquivo, nome_do_arquivo_pkg);
+	printf("Nome de nome_do_arquivo_pkg: %s\n, tamanho: %zu, strlen: %zu \n", nome_do_arquivo_pkg, sizeof(nome_do_arquivo_pkg), strlen(nome_do_arquivo_pkg));
 
 	// Realiza temporizacao para 1s
 	struct timeval tv;
@@ -85,21 +113,79 @@ int main(int argc, char **argv){
 		perror("Error setsockopt\n");}
 
 	// Envia nome do arquivo
-	int count;
+	int total_recebido;
 	char buffer[tam_buffer];
 	do {
 		printf("Envia nome_do_arquivo ......\n");
-		tp_sendto(udp_socket, nome_do_arquivo_pkg, filename_len, &server);
-		count = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
-	}while ((count == -1) || buffer[0] != '0');
+		tp_sendto(udp_socket, nome_do_arquivo_pkg, strlen(nome_do_arquivo_pkg)+1, &server);
+		total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
+	}while ((total_recebido == -1) || buffer[0] != '0');
 	printf("OK, server recebeu o nome do arquivo !\n");
 
-	char ack[] = "1";
+	// Confirma inicio da conexão
+	strcpy(ack, "1");
 	tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 1
 
+	//abre um arquivo para salvar os dados recebidos
+	printf("Nome do arquivo: %s \n", nome_do_arquivo);
+	FILE *arq;
+	arq = fopen("cliente.txt", "w");
+	if (arq == NULL){
+		printf("Problemas na criacao do arquivo");
+		exit(1);	
+	}
+	fflush(f);
+	fwrite("Sim, eu consigo escrever\n" , 1, 25, arq);
+	fflush(f)
+
+	// Recebe os dados por Stop and Wait
+	int tam_cabecalho = 1;
+	int tam_dados = tam_buffer-tam_cabecalho;
+	char dados[tam_dados];
+	int total_gravado; //recebe o numero em bytes do que foi gravado no arquivo em cada iteracao
+	int tam_arquivo = 0; 
+	char ack_esperado[] = "0";
+	char ack_recebido[2];
+
+	do {
+		if (strcmp(ack_esperado, "0") == 0){
+			do{
+			tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 1
+			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
+			extract_ack(buffer, ack_recebido);
+			printf("Aguardando ACK=1, ack_recebido=%s \n", ack_recebido);
+			}while((total_recebido == -1) || (strcmp(ack_recebido, "0") != 0) );
+		}
+
+		else if(strcmp(ack_esperado, "1") == 0){
+			do{
+			tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 0
+			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 1
+			extract_ack(buffer, ack_recebido);
+			printf("Aguardando ACK=1, ack_recebido=%s \n", ack_recebido);
+			}while((total_recebido == -1) || (strcmp(ack_recebido, "1") != 0) );
+		}
+
+		extract_packet(buffer, ack_recebido, dados);
+		printf("DADOS: %s \n", dados);
+		total_gravado = fwrite(dados, 1, total_recebido-tam_cabecalho, arq);
+		if (total_gravado != total_recebido-tam_cabecalho){
+			printf("Erro na escrita do arquivo");
+			exit(1);
+		}
+		memset(dados, 0, tam_dados);
+		toggle_ack(ack);
+
+	}while(1);
+
+	
+	//fecha o arquivo
+	fclose(arq);
+
+	// Libera os ponteiros alocados
+	free(nome_do_arquivo_pkg);
 	free(nome_do_arquivo);
 	free(nome_do_servidor);
-	free(nome_do_arquivo_pkg);
 
 	return 0;
 }
