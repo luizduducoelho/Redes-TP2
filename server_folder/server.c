@@ -65,7 +65,7 @@ int main(int argc, char * argv[]){
 
 	// Inicializa temporizacao
 	struct timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_sec = 5;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt \n");
@@ -102,16 +102,17 @@ int main(int argc, char * argv[]){
 	//rotina stop-and-wait
 	do{
 		total_lido = fread(dados, 1, tam_dados, arq);
-		//strcpy(pacote, ack); //aux = ack
-		//strcat(pacote, buffer); //aux = ack+buffer
-		//strcpy(buffer, pacote); //buffer = ack+buffer (cabeçalho completo)
 		create_packet(ack, dados, buffer, total_lido);
 		printf("buffer:%s\n",buffer);
 		printf("ack:%s\n", ack);
 
+		//if (total_lido == 0){  // Descomentar essa parte para testar a temporizacao do cliente
+		//	exit(1);
+		//}
+
 		if(ack[0]=='0'){
 			do {
-				tp_sendto(udp_socket, buffer, sizeof(buffer), &cliente); // Manda pacote de dados 0
+				tp_sendto(udp_socket, buffer, total_lido + tam_cabecalho, &cliente); // Manda pacote de dados 0
 				printf("Aguardando ACK = %s ....... \n",ack);
 				count = tp_recvfrom(udp_socket, ack_recebido, sizeof(ack_recebido), &cliente);  // Espera ACK = 0
 				// Do something better here 
@@ -122,10 +123,10 @@ int main(int argc, char * argv[]){
 			}
 		else if(ack[0]=='1'){
 			do {
-				tp_sendto(udp_socket, buffer, sizeof(buffer), &cliente); // Manda pacote de dados 1
+				tp_sendto(udp_socket, buffer, total_lido + tam_cabecalho, &cliente); // Manda pacote de dados 1
 				printf("Aguardando ACK = %s ....... \n",ack);
 				count = tp_recvfrom(udp_socket, ack_recebido, sizeof(ack_recebido), &cliente);  // Espera ACK = 1
-			}while ((count == -1) || (buffer[0] != '1'));
+			}while ((count == -1) || (strcmp(ack_recebido, "1") != 0));
 			memset(ack, 0, 1);
 			strcpy(ack,"0");
 			count = -1;

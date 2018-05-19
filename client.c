@@ -39,6 +39,17 @@ void toggle_ack(char *ack){
 	}
 }
 
+int bytes_to_write(int total_recebido, int tam_cabecalho){
+	int write_n;
+	if (total_recebido-tam_cabecalho > 0){
+		write_n = total_recebido-tam_cabecalho;
+	}
+	else{
+		write_n = 0;
+	}
+	return write_n;
+}
+
 int main(int argc, char **argv){
 	// PROCESSANDO ARGUMENTOS DA LINHA DE COMANDO
 	if(argc < 5){	
@@ -107,7 +118,7 @@ int main(int argc, char **argv){
 
 	// Realiza temporizacao para 1s
 	struct timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_sec = 5;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt\n");}
@@ -129,13 +140,12 @@ int main(int argc, char **argv){
 	//abre um arquivo para salvar os dados recebidos
 	printf("Nome do arquivo: %s \n", nome_do_arquivo);
 	FILE *arq;
-	arq = fopen("cliente.txt", "w");
+	arq = fopen(nome_do_arquivo, "w");
 	if (arq == NULL){
 		printf("Problemas na criacao do arquivo");
 		exit(1);	
 	}
 	fflush(arq);
-	fwrite("Sim, eu consigo escrever\n" , 1, 25, arq);
 
 	// Recebe os dados por Stop and Wait
 	int tam_cabecalho = 1;
@@ -145,38 +155,58 @@ int main(int argc, char **argv){
 	int tam_arquivo = 0; 
 	char ack_esperado[] = "0";
 	char ack_recebido[2];
+	int max_timeouts = 10;
+	int timeouts = 0;
+	int write_n;
 
 	do {
 		if (strcmp(ack_esperado, "0") == 0){
 			do{
-			tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 1
 			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
 			extract_ack(buffer, ack_recebido);
-			printf("Aguardando ACK=1, ack_recebido=%s \n", ack_recebido);
-			}while((total_recebido == -1) || (strcmp(ack_recebido, "0") != 0) );
+			printf("Aguardando ACK=0, ack_recebido=%s \n", ack_recebido);
+			if (strcmp(ack_recebido, "0") == 0){
+				tp_sendto(udp_socket, "0", sizeof("0"), &server); // Manda ACK = 0
+				printf("Recebi corretamente : %s \n", buffer);
+				timeouts = 0;
+			}
+			else{
+				timeouts++;
+			}
+
+			}while(((total_recebido == -1) || (strcmp(ack_recebido, "0") != 0)) && timeouts<=max_timeouts);
 		}
 
 		else if(strcmp(ack_esperado, "1") == 0){
 			do{
-			tp_sendto(udp_socket, ack, sizeof(ack), &server); // Manda ACK = 0
 			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 1
 			extract_ack(buffer, ack_recebido);
 			printf("Aguardando ACK=1, ack_recebido=%s \n", ack_recebido);
-			}while((total_recebido == -1) || (strcmp(ack_recebido, "1") != 0) );
+			if (strcmp(ack_recebido, "1") == 0){
+				tp_sendto(udp_socket, "1", sizeof("1"), &server); // Manda ACK = 1
+				printf("Recebi corretamente : %s \n", buffer);
+			}
+			else{
+				timeouts++;
+			}
+			}while(((total_recebido == -1) || (strcmp(ack_recebido, "1") != 0)) &&  timeouts<=max_timeouts);
 		}
 
 		extract_packet(buffer, ack_recebido, dados);
 		printf("DADOS: %s \n", dados);
 		fflush(arq);
-		total_gravado = fwrite(dados, 1, total_recebido-tam_cabecalho, arq);
-		if (total_gravado != total_recebido-tam_cabecalho){
+		write_n = bytes_to_write(total_recebido, tam_cabecalho);
+		total_gravado = fwrite(dados, 1, write_n, arq);
+		printf("total_gravado: %d, total_recebido-tam_cabecalho: %d \n", total_gravado, total_recebido-tam_cabecalho);
+
+		if ((total_gravado != total_recebido-tam_cabecalho) && (total_recebido-tam_cabecalho > 0)){
 			printf("Erro na escrita do arquivo");
 			exit(1);
 		}
 		memset(dados, 0, tam_dados);
-		toggle_ack(ack);
+		toggle_ack(ack_esperado);
 
-	}while(1);
+	}while((total_recebido != 1) && timeouts<=max_timeouts);
 
 	
 	//fecha o arquivo
