@@ -134,9 +134,8 @@ int main(int argc, char **argv){
 		printf("Problemas na criacao do arquivo");
 		exit(1);	
 	}
-	fflush(f);
+	fflush(arq);
 	fwrite("Sim, eu consigo escrever\n" , 1, 25, arq);
-	fflush(f)
 
 	// Recebe os dados por Stop and Wait
 	int tam_cabecalho = 1;
@@ -168,6 +167,7 @@ int main(int argc, char **argv){
 
 		extract_packet(buffer, ack_recebido, dados);
 		printf("DADOS: %s \n", dados);
+		fflush(arq);
 		total_gravado = fwrite(dados, 1, total_recebido-tam_cabecalho, arq);
 		if (total_gravado != total_recebido-tam_cabecalho){
 			printf("Erro na escrita do arquivo");
