@@ -128,7 +128,6 @@ int main(int argc, char * argv[]){
 	//rotina stop-and-wait
 	do{
 		total_lido = fread(dados, 1, tam_dados, arq);
-		dados[tam_dados] = '\0';
 		printf("tamanho dados:%zu\n", sizeof(dados));
 		printf("dados:%s\n", dados);
 		sum[0] = checksum(dados);
