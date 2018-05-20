@@ -71,24 +71,12 @@ int main(int argc, char * argv[]){
 
 	// From
 	so_addr cliente; 
-<<<<<<< HEAD
 	char nome_do_arquivo[256] = { 0 };
 	char pacote_com_nome[256] = { 0 };
 	char ack_recebido[2] = { 0 };
-	// Rebebe um buffer
-	tp_recvfrom(udp_socket, pacote_com_nome, sizeof(nome_do_arquivo), &cliente);
-	//extrai a substring com o nome do arquivo, sem o ACK
-	extract_packet(pacote_com_nome, ack_recebido, nome_do_arquivo);
-	printf("Nome recebido: %s \n", nome_do_arquivo);
-
-
-=======
-	char nome_do_arquivo[256];
-	char pacote_com_nome[256];
-	char ack_recebido[2];
 	char sum_recebido[2];
 	char sum[2];
->>>>>>> 46a83f07d5bf373af0ea19e6812c4c677c0aebca
+
 	// Inicializa temporizacao
 	struct timeval tv;
 	tv.tv_sec = 1;

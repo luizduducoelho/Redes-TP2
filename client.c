@@ -184,30 +184,16 @@ int main(int argc, char **argv){
 	do {
 		if (strcmp(ack_esperado, "0") == 0){
 			do{
-<<<<<<< HEAD
-			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
-			if (total_recebido > -1){
-				extract_ack(buffer, ack_recebido);
-			}
-			printf("Aguardando ACK=0, ack_recebido=%s \n", ack_recebido);
-			if (strcmp(ack_recebido, "0") == 0){
-				tp_sendto(udp_socket, "0", sizeof("0"), &server); // Manda ACK = 0
-				printf("Recebi corretamente : %s \n", buffer);
-				timeouts = 0;
-			}
-			else{
-				timeouts++;
-			}
-
-=======
 				total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
 				printf("totalrecebido:%i\n", total_recebido);
-				extract_ack(buffer, ack_recebido);
+				if (total_recebido > -1){
+					extract_ack(buffer, ack_recebido);
 				extract_checksum(buffer, sum_recebido);
 				extract_packet(buffer, ack_recebido, dados, total_recebido);
 				sum[0] = checksum(dados);
 				sum[1] = '\0';
 				printf("sum:%s", sum);
+				}
 				printf("Aguardando ACK=0, ack_recebido=%s \n", ack_recebido);
 				if ((strcmp(ack_recebido, "0") == 0) && (strcmp(sum, sum_recebido) == 0)){
 					tp_sendto(udp_socket, "0", sizeof("0"), &server); // Manda ACK = 0
@@ -217,26 +203,21 @@ int main(int argc, char **argv){
 				else{
 					timeouts++;
 					}
->>>>>>> 46a83f07d5bf373af0ea19e6812c4c677c0aebca
 			}while(((total_recebido == -1) || (strcmp(ack_recebido, "0") != 0)) && timeouts<=max_timeouts);
 		}
 
 		else if(strcmp(ack_esperado, "1") == 0){
 			do{
 			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 1
-<<<<<<< HEAD
+			printf("totalrecebido:%i\n", total_recebido);
 			if (total_recebido > -1){
 				extract_ack(buffer, ack_recebido);
+				extract_checksum(buffer, sum_recebido);
+				extract_packet(buffer, ack_recebido, dados, total_recebido);
+				sum[0] = checksum(dados);
+				sum[1] = '\0';
+				printf("sum:%s\n", sum);
 			}
-=======
-			printf("totalrecebido:%i\n", total_recebido);
-			extract_ack(buffer, ack_recebido);
-			extract_checksum(buffer, sum_recebido);
-			extract_packet(buffer, ack_recebido, dados, total_recebido);
-			sum[0] = checksum(dados);
-			sum[1] = '\0';
-			printf("sum:%s\n", sum);
->>>>>>> 46a83f07d5bf373af0ea19e6812c4c677c0aebca
 			printf("Aguardando ACK=1, ack_recebido=%s \n", ack_recebido);
 			if ((strcmp(ack_recebido, "1") == 0) && (strcmp(sum, sum_recebido) == 0)){
 				tp_sendto(udp_socket, "1", sizeof("1"), &server); // Manda ACK = 1
@@ -266,15 +247,12 @@ int main(int argc, char **argv){
 		toggle_ack(ack_esperado);
 
 	}while((total_recebido != 1) && timeouts<=max_timeouts);
-<<<<<<< HEAD
 
-	printf("Foram recebidos, %d bytes!! \n", tam_arquivo);
-	printf("Timeouts: %d \n", timeouts);
-=======
 	gettimeofday(&t2, NULL);
 	long double tempoGasto = (t2.tv_sec - t1.tv_sec);
 	printf("Foram recebidos, %d bytes, em %d segundos", tam_arquivo, tempoGasto);
->>>>>>> 46a83f07d5bf373af0ea19e6812c4c677c0aebca
+	printf("Timeouts: %d \n", timeouts);
+
 	//fecha o arquivo
 	fclose(arq);
 
