@@ -53,9 +53,9 @@ int main(int argc, char * argv[]){
 
 	// From
 	so_addr cliente; 
-	char nome_do_arquivo[256];
-	char pacote_com_nome[256];
-	char ack_recebido[2];
+	char nome_do_arquivo[256] = { 0 };
+	char pacote_com_nome[256] = { 0 };
+	char ack_recebido[2] = { 0 };
 	// Rebebe um buffer
 	tp_recvfrom(udp_socket, pacote_com_nome, sizeof(nome_do_arquivo), &cliente);
 	//extrai a substring com o nome do arquivo, sem o ACK
@@ -65,7 +65,7 @@ int main(int argc, char * argv[]){
 
 	// Inicializa temporizacao
 	struct timeval tv;
-	tv.tv_sec = 5;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt \n");
@@ -96,7 +96,7 @@ int main(int argc, char * argv[]){
 	}
 	int total_lido;
 	int tam_dados = tam_buffer-tam_cabecalho;
-	char dados[tam_dados]; 
+	char dados[tam_dados];
 	printf("ack%s \n",ack);
 
 	//rotina stop-and-wait

@@ -30,6 +30,11 @@ int tp_sendto(int so, char* buff, int buff_len, so_addr* to_addr)
      * exercitar a funcionalidade do protocolo da camada   *
      * acima (o PJD).                                      *
      *******************************************************/
+	int r = rand()%25;
+	if (r == 0){
+		printf("JUST STOLE YOUR PACKAGE!!!!!!!!!!!!!!!!!! \n");
+		return -1;
+	}
     count = sendto(so, (void*)buff, buff_len, 0,
             (struct sockaddr*) to_addr, sizeof(struct sockaddr_in));
     fprintf(stderr,"tp_sendto returning (sent %d bytes)\n", count);
@@ -47,6 +52,11 @@ int tp_recvfrom(int so, char* buff, int buff_len, so_addr* from_addr)
      * exercitar a funcionalidade do protocolo da camada   *
      * acima (o PJD).                                      *
      *******************************************************/
+	int r = rand()%25;
+	if (r == 0){
+		printf("JUST STOLE YOUR PACKAGE!!!!!!!!!!!!!!!!!! \n");
+		return -1;
+	}
     count = recvfrom(so,(void*)buff,(size_t)buff_len,0,
             (struct sockaddr*) from_addr, &sockaddr_len);
     fprintf(stderr,"tp_recvfrom returning (received %d bytes)\n",count);

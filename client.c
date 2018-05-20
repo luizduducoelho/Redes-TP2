@@ -154,7 +154,7 @@ int main(int argc, char **argv){
 	int total_gravado; //recebe o numero em bytes do que foi gravado no arquivo em cada iteracao
 	int tam_arquivo = 0; 
 	char ack_esperado[] = "0";
-	char ack_recebido[2];
+	char ack_recebido[2] = { 0 };
 	int max_timeouts = 10;
 	int timeouts = 0;
 	int write_n;
@@ -163,7 +163,9 @@ int main(int argc, char **argv){
 		if (strcmp(ack_esperado, "0") == 0){
 			do{
 			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 0
-			extract_ack(buffer, ack_recebido);
+			if (total_recebido > -1){
+				extract_ack(buffer, ack_recebido);
+			}
 			printf("Aguardando ACK=0, ack_recebido=%s \n", ack_recebido);
 			if (strcmp(ack_recebido, "0") == 0){
 				tp_sendto(udp_socket, "0", sizeof("0"), &server); // Manda ACK = 0
@@ -180,11 +182,14 @@ int main(int argc, char **argv){
 		else if(strcmp(ack_esperado, "1") == 0){
 			do{
 			total_recebido = tp_recvfrom(udp_socket, buffer, tam_buffer, &server);  // Esperando ACK = 1
-			extract_ack(buffer, ack_recebido);
+			if (total_recebido > -1){
+				extract_ack(buffer, ack_recebido);
+			}
 			printf("Aguardando ACK=1, ack_recebido=%s \n", ack_recebido);
 			if (strcmp(ack_recebido, "1") == 0){
 				tp_sendto(udp_socket, "1", sizeof("1"), &server); // Manda ACK = 1
 				printf("Recebi corretamente : %s \n", buffer);
+				timeouts = 0;
 			}
 			else{
 				timeouts++;
@@ -209,7 +214,8 @@ int main(int argc, char **argv){
 
 	}while((total_recebido != 1) && timeouts<=max_timeouts);
 
-	printf("Foram recebidos, %d bytes!!", tam_arquivo);
+	printf("Foram recebidos, %d bytes!! \n", tam_arquivo);
+	printf("Timeouts: %d \n", timeouts);
 	//fecha o arquivo
 	fclose(arq);
 
