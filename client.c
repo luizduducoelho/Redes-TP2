@@ -16,10 +16,10 @@ void create_packet(char* akc, char* dados, char* packet){
 	strcat(packet, dados);
 }
 
-void extract_packet(char* packet, char* ack, char* dados ){
+void extract_packet(char* packet, char* ack, char* dados, int total_recebido ){
 	strncpy(ack, packet, 1);  // Be aware that strncpy does NOT null terminate
 	ack[1] = '\0';
-	memmove(dados, packet+1, strlen(packet));
+	memmove(dados, packet+1, total_recebido-1);
 }
 
 void extract_ack(char* packet, char* ack){
@@ -118,7 +118,7 @@ int main(int argc, char **argv){
 
 	// Realiza temporizacao para 1s
 	struct timeval tv;
-	tv.tv_sec = 5;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt\n");}
@@ -140,7 +140,7 @@ int main(int argc, char **argv){
 	//abre um arquivo para salvar os dados recebidos
 	printf("Nome do arquivo: %s \n", nome_do_arquivo);
 	FILE *arq;
-	arq = fopen(nome_do_arquivo, "w");
+	arq = fopen(nome_do_arquivo, "w+");
 	if (arq == NULL){
 		printf("Problemas na criacao do arquivo");
 		exit(1);	
@@ -192,15 +192,16 @@ int main(int argc, char **argv){
 			}while(((total_recebido == -1) || (strcmp(ack_recebido, "1") != 0)) &&  timeouts<=max_timeouts);
 		}
 
-		extract_packet(buffer, ack_recebido, dados);
+		extract_packet(buffer, ack_recebido, dados, total_recebido);
 		printf("DADOS: %s \n", dados);
 		fflush(arq);
 		write_n = bytes_to_write(total_recebido, tam_cabecalho);
 		total_gravado = fwrite(dados, 1, write_n, arq);
+		tam_arquivo += total_gravado;
 		printf("total_gravado: %d, total_recebido-tam_cabecalho: %d \n", total_gravado, total_recebido-tam_cabecalho);
 
 		if ((total_gravado != total_recebido-tam_cabecalho) && (total_recebido-tam_cabecalho > 0)){
-			printf("Erro na escrita do arquivo");
+			printf("Erro na escrita do arquivo.\n");
 			exit(1);
 		}
 		memset(dados, 0, tam_dados);
@@ -208,7 +209,7 @@ int main(int argc, char **argv){
 
 	}while((total_recebido != 1) && timeouts<=max_timeouts);
 
-	
+	printf("Foram recebidos, %d bytes!!", tam_arquivo);
 	//fecha o arquivo
 	fclose(arq);
 

@@ -6,7 +6,7 @@
 #include "tp_socket.c"
 
 void create_packet(char* akc, char* dados, char* packet, int total_lido){
-	strcpy(packet, akc);
+	strncpy(packet, akc, 1);
 	//strcat(packet, dados);
 	memmove(packet+1, dados, total_lido);
 }
@@ -131,7 +131,7 @@ int main(int argc, char * argv[]){
 			strcpy(ack,"0");
 			count = -1;
 			}
-		memset(buffer, 0, tam_buffer );
+		memset(buffer, 0, tam_buffer);
 		memset(dados, 0, tam_dados);
 		memset(ack_recebido, 0, 1);
 	}while(total_lido != 0);
