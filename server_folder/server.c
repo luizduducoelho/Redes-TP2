@@ -5,21 +5,39 @@
 #include <sys/time.h>
 #include "tp_socket.c"
 
-void create_packet(char* akc, char* dados, char* packet, int total_lido){
-	strncpy(packet, akc, 1);
-	//strcat(packet, dados);
-	memmove(packet+1, dados, total_lido);
+char checksum(char* s)
+{
+	 char sum = 1;
+	while (*s != 0)
+	{
+		sum += *s;
+		s++;
+	}
+	return sum;
 }
 
-void extract_packet(char* packet, char* ack, char* dados ){
+void create_packet(char* akc, char* dados, char* checksum, char* packet, int total_lido){
+	strcpy(packet, akc);
+	strcat(packet, checksum);
+	memmove(packet+2, dados, total_lido);
+}
+
+void extract_packet(char* packet, char* ack, char* checksum, char* dados ){
 	strncpy(ack, packet, 1);  // Be aware that strncpy does NOT null terminate
 	ack[1] = '\0';
+	checksum[1] = '\0';
 	memmove(dados, packet+1, strlen(packet));
+	memmove(dados, packet+2, strlen(packet)-1);
 }
 
 void extract_ack(char* packet, char* ack){
 	strncpy(ack, packet, 1);  // Be aware that strncpy does NOT null terminate
 	ack[1] = '\0';
+}
+
+void extract_checksum(char* packet, char *checksum){
+	memcpy(checksum, packet+1, 1);
+	checksum[1] = '\0';
 }
 
 int main(int argc, char * argv[]){
@@ -56,24 +74,29 @@ int main(int argc, char * argv[]){
 	char nome_do_arquivo[256];
 	char pacote_com_nome[256];
 	char ack_recebido[2];
-	// Rebebe um buffer
-	tp_recvfrom(udp_socket, pacote_com_nome, sizeof(nome_do_arquivo), &cliente);
-	//extrai a substring com o nome do arquivo, sem o ACK
-	extract_packet(pacote_com_nome, ack_recebido, nome_do_arquivo);
-	printf("Nome recebido: %s \n", nome_do_arquivo);
-
-
+	char sum_recebido[2];
+	char sum[2];
 	// Inicializa temporizacao
 	struct timeval tv;
-	tv.tv_sec = 5;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if(setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0){
 		perror("Error setsockopt \n");
 	}
+	// Rebebe um buffer
+	do{
+		tp_recvfrom(udp_socket, pacote_com_nome, sizeof(nome_do_arquivo), &cliente);
+		extract_checksum(pacote_com_nome, sum_recebido);
+		extract_packet(pacote_com_nome, ack_recebido, sum_recebido, nome_do_arquivo);
+		sum[0] = checksum(nome_do_arquivo);
+		sum[1] = '\0';
+	}while(sum[0] != sum_recebido[0]);	
+	//extrai a substring com o nome do arquivo, sem o ACK
+	printf("Nome recebido: %s \n", nome_do_arquivo);
 
 	// Aguardando ACK do nome do arquivo
 	int count;
-	int tam_cabecalho = 1;
+	int tam_cabecalho = 2;
 	char buffer[tam_buffer];
 	char ack[] = "0";
 	do {
@@ -102,9 +125,15 @@ int main(int argc, char * argv[]){
 	//rotina stop-and-wait
 	do{
 		total_lido = fread(dados, 1, tam_dados, arq);
-		create_packet(ack, dados, buffer, total_lido);
+		dados[tam_dados] = '\0';
+		printf("tamanho dados:%i\n", sizeof(dados));
+		printf("dados:%s\n", dados);
+		sum[0] = checksum(dados);
+		sum[1] = '\0';
+		create_packet(ack, dados, sum, buffer, total_lido);
 		printf("buffer:%s\n",buffer);
 		printf("ack:%s\n", ack);
+		printf("sum:%s\n", sum);
 
 		//if (total_lido == 0){  // Descomentar essa parte para testar a temporizacao do cliente
 		//	exit(1);
